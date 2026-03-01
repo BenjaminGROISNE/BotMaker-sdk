@@ -12,7 +12,9 @@ import java.util.List;
 
 /**
  * JNA bindings for X11 library (libX11)
- * Used for window management, querying, and screen capture on Linux
+ * Used for window management and querying on Linux
+ *
+ * Note: XImage-related bindings removed since we use Robot for screen capture
  */
 public interface X11 extends Library {
 	X11 INSTANCE = Native.load("X11", X11.class);
@@ -23,9 +25,6 @@ public interface X11 extends Library {
 	int Success = 0;
 	int InputFocus = 1;
 	int RevertToParent = 2;
-
-	int ZPixmap = 2;
-	int AllPlanes = 0xFFFFFFFF;
 
 	int IsUnmapped = 0;
 	int IsUnviewable = 1;
@@ -79,14 +78,6 @@ public interface X11 extends Library {
 	Pointer XInternAtom(Pointer display, String atomName, boolean onlyIfExists);
 	int XGetAtomName(Pointer display, Pointer atom, PointerByReference nameReturn);
 
-	// Image capture
-	Pointer XGetImage(Pointer display, Pointer drawable,
-					  int x, int y,
-					  int width, int height,
-					  long planeMask, int format);
-
-	int XDestroyImage(Pointer image);
-
 	// Screen info
 	int XScreenCount(Pointer display);
 	int XDisplayWidth(Pointer display, int screenNumber);
@@ -132,45 +123,6 @@ public interface X11 extends Library {
 				"save_under", "colormap", "map_installed", "map_state",
 				"all_event_masks", "your_event_mask", "do_not_propagate_mask",
 				"override_redirect", "screen");
-		}
-	}
-
-	/**
-	 * XImage structure (simplified)
-	 */
-	class XImage extends Structure {
-		public int width;
-		public int height;
-		public int xoffset;
-		public int format;
-		public Pointer data;
-		public int byte_order;
-		public int bitmap_unit;
-		public int bitmap_bit_order;
-		public int bitmap_pad;
-		public int depth;
-		public int bytes_per_line;
-		public int bits_per_pixel;
-		public long red_mask;
-		public long green_mask;
-		public long blue_mask;
-		public Pointer obdata;
-
-		@Override
-		protected List<String> getFieldOrder() {
-			return Arrays.asList("width", "height", "xoffset", "format", "data",
-				"byte_order", "bitmap_unit", "bitmap_bit_order",
-				"bitmap_pad", "depth", "bytes_per_line", "bits_per_pixel",
-				"red_mask", "green_mask", "blue_mask", "obdata");
-		}
-
-		public XImage() {
-			super();
-		}
-
-		public XImage(Pointer p) {
-			super(p);
-			read();
 		}
 	}
 }

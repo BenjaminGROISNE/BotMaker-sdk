@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Linux implementation of NativeController using X11
- * Provides window management and screen capture functionality
+ * Uses Robot for screen capture and XTest for mouse clicks
  *
  * Note: This class manages native X11 resources. While it implements AutoCloseable,
  * the display connection is typically kept open for the lifetime of the application.
@@ -39,7 +39,7 @@ public class LinuxController implements NativeController, AutoCloseable {
 				System.err.println("[Linux] Make sure DISPLAY environment variable is set and X11 is running.");
 			}
 		} catch (UnsatisfiedLinkError e) {
-			System.err.println("[Linux] Warning: X11 libraries not found. Install libx11-dev and libxtst-dev.");
+			System.err.println("[Linux] Warning: X11 libraries not found. Install libx11-6 and libxtst-6.");
 			System.err.println("[Linux] Falling back to Robot for all operations.");
 		} catch (Exception e) {
 			System.err.println("[Linux] Warning: Error initializing X11: " + e.getMessage());
@@ -229,6 +229,9 @@ public class LinuxController implements NativeController, AutoCloseable {
 		return allWindows.toArray(new Pointer[0]);
 	}
 
+	/**
+	 * Capture window using Robot (simple and reliable)
+	 */
 	@Override
 	public BufferedImage captureWindow(GenericWindow window) {
 		checkNotClosed();
@@ -244,20 +247,13 @@ public class LinuxController implements NativeController, AutoCloseable {
 			// Get window geometry
 			Rectangle rect = X11Utils.getWindowGeometry(display, x11Window);
 			if (rect == null || rect.width <= 0 || rect.height <= 0) {
-				System.err.println("[Linux] Invalid window geometry, falling back to Robot.");
+				System.err.println("[Linux] Invalid window geometry, falling back to desktop capture.");
 				return captureDesktop();
 			}
 
-			// Capture using XGetImage
-			BufferedImage image = captureX11Window(x11Window, rect.width, rect.height);
+			// Simple and reliable - use Robot for screen capture
+			return new Robot().createScreenCapture(rect);
 
-			if (image == null || isBlackImage(image)) {
-				// Fallback to Robot if XGetImage fails or returns black image
-				System.out.println("[Linux] XGetImage failed or returned black, using Robot fallback.");
-				return captureWithRobot(rect);
-			}
-
-			return image;
 		} catch (Exception e) {
 			System.err.println("[Linux] Error capturing window: " + e.getMessage());
 			e.printStackTrace();
@@ -266,103 +262,15 @@ public class LinuxController implements NativeController, AutoCloseable {
 	}
 
 	/**
-	 * Capture window using X11 XGetImage
+	 * Capture all monitors as a single image
+	 * This captures the virtual screen bounds that encompasses all monitors
 	 */
-	private BufferedImage captureX11Window(Pointer window, int width, int height) {
-		try {
-			// XGetImage captures the window contents
-			Pointer imagePtr = X11.INSTANCE.XGetImage(
-				display, window,
-				0, 0,
-				width, height,
-				X11.AllPlanes,
-				X11.ZPixmap
-			);
-
-			if (imagePtr == null) {
-				return null;
-			}
-
-			X11.XImage xImage = new X11.XImage(imagePtr);
-
-			// Convert XImage to BufferedImage
-			BufferedImage bufferedImage = xImageToBufferedImage(xImage);
-
-			// Destroy the XImage
-			X11.INSTANCE.XDestroyImage(imagePtr);
-
-			return bufferedImage;
-		} catch (Exception e) {
-			System.err.println("[Linux] Error in captureX11Window: " + e.getMessage());
-			return null;
-		}
-	}
-
-	/**
-	 * Convert X11 XImage to Java BufferedImage
-	 */
-	private BufferedImage xImageToBufferedImage(X11.XImage xImage) {
-		int width = xImage.width;
-		int height = xImage.height;
-
-		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-
-		// Read pixel data
-		Pointer data = xImage.data;
-		int bytesPerPixel = xImage.bits_per_pixel / 8;
-
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				long offset = (long) y * xImage.bytes_per_line + (long) x * bytesPerPixel;
-
-				int pixel;
-				if (bytesPerPixel == 4) {
-					// 32-bit color (BGRA or RGBA)
-					pixel = data.getInt(offset);
-
-					// Extract components (assuming BGRA format, common on Linux)
-					int b = pixel & 0xFF;
-					int g = (pixel >> 8) & 0xFF;
-					int r = (pixel >> 16) & 0xFF;
-
-					// Reconstruct as RGB
-					pixel = (r << 16) | (g << 8) | b;
-				} else if (bytesPerPixel == 3) {
-					// 24-bit color (BGR)
-					int b = data.getByte(offset) & 0xFF;
-					int g = data.getByte(offset + 1) & 0xFF;
-					int r = data.getByte(offset + 2) & 0xFF;
-
-					pixel = (r << 16) | (g << 8) | b;
-				} else {
-					pixel = 0; // Unsupported format
-				}
-
-				image.setRGB(x, y, pixel);
-			}
-		}
-
-		return image;
-	}
-
-	/**
-	 * Capture using Java Robot as fallback
-	 */
-	private BufferedImage captureWithRobot(Rectangle rect) {
-		try {
-			return new Robot().createScreenCapture(rect);
-		} catch (AWTException e) {
-			System.err.println("[Linux] Robot capture failed: " + e.getMessage());
-			return null;
-		}
-	}
-
 	@Override
 	public BufferedImage captureDesktop() {
 		try {
-			return new Robot().createScreenCapture(
-				new Rectangle(Toolkit.getDefaultToolkit().getScreenSize())
-			);
+			// Get the bounding rectangle of all monitors
+			Rectangle virtualBounds = getVirtualScreenBounds();
+			return new Robot().createScreenCapture(virtualBounds);
 		} catch (AWTException e) {
 			System.err.println("[Linux] Desktop capture failed: " + e.getMessage());
 			e.printStackTrace();
@@ -370,6 +278,28 @@ public class LinuxController implements NativeController, AutoCloseable {
 		}
 	}
 
+	/**
+	 * Get the virtual screen bounds that encompasses all monitors
+	 */
+	private Rectangle getVirtualScreenBounds() {
+		Rectangle virtualBounds = new Rectangle();
+
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice[] screens = ge.getScreenDevices();
+
+		for (GraphicsDevice screen : screens) {
+			GraphicsConfiguration config = screen.getDefaultConfiguration();
+			Rectangle bounds = config.getBounds();
+			virtualBounds = virtualBounds.union(bounds);
+		}
+
+		return virtualBounds;
+	}
+
+	/**
+	 * Post click using window-relative coordinates
+	 * Converts to screen coordinates and uses XTest
+	 */
 	@Override
 	public void postLeftClick(GenericWindow window, int relativeX, int relativeY) {
 		checkNotClosed();
@@ -401,6 +331,10 @@ public class LinuxController implements NativeController, AutoCloseable {
 		}
 	}
 
+	/**
+	 * Post click using absolute screen coordinates
+	 * Uses XTest to avoid moving the visible cursor (like Windows PostMessage)
+	 */
 	@Override
 	public void postLeftClickScreen(int xAbs, int yAbs) {
 		checkNotClosed();
@@ -423,7 +357,7 @@ public class LinuxController implements NativeController, AutoCloseable {
 		}
 
 		try {
-			// Move mouse to position
+			// Move mouse to position (fake motion - doesn't move visible cursor)
 			XTest.INSTANCE.XTestFakeMotionEvent(display, -1, xAbs, yAbs, 0);
 			X11.INSTANCE.XFlush(display);
 
@@ -469,34 +403,6 @@ public class LinuxController implements NativeController, AutoCloseable {
 			System.err.println("[Linux] Error converting to GenericWindow: " + e.getMessage());
 			return null;
 		}
-	}
-
-	/**
-	 * Check if image is completely black (failed capture)
-	 */
-	private boolean isBlackImage(BufferedImage image) {
-		if (image == null) {
-			return true;
-		}
-
-		int width = image.getWidth();
-		int height = image.getHeight();
-
-		if (width == 0 || height == 0) {
-			return true;
-		}
-
-		// Sample a few pixels
-		for (int i = 0; i < 10; i++) {
-			int x = (int) (Math.random() * width);
-			int y = (int) (Math.random() * height);
-
-			if ((image.getRGB(x, y) & 0x00FFFFFF) != 0) {
-				return false; // Found non-black pixel
-			}
-		}
-
-		return true;
 	}
 
 	/**

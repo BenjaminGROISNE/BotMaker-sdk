@@ -137,16 +137,19 @@ public class LinuxControllerTest {
 
 		System.out.println("Capturing: " + window.getTitle());
 
+		long startTime = System.nanoTime();
 		BufferedImage image = controller.captureWindow(window);
+		long captureTime = System.nanoTime() - startTime;
 
 		if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
 			File output = new File("/tmp/linux_window_capture.png");
 			ImageIO.write(image, "png", output);
 			System.out.println("✓ Window captured successfully!");
 			System.out.println("  Image size: " + image.getWidth() + "x" + image.getHeight());
+			System.out.println("  Capture time: " + (captureTime / 1_000_000) + "ms");
 			System.out.println("  Saved to: " + output.getAbsolutePath());
 
-			// Check if image is not all black
+			// Check if image has actual content
 			boolean hasColor = false;
 			for (int i = 0; i < 10; i++) {
 				int x = (int) (Math.random() * image.getWidth());
@@ -170,13 +173,16 @@ public class LinuxControllerTest {
 	private static void testDesktopCapture() throws Exception {
 		System.out.println("\n=== Test: Desktop Capture ===");
 
+		long startTime = System.nanoTime();
 		BufferedImage image = controller.captureDesktop();
+		long captureTime = System.nanoTime() - startTime;
 
 		if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
 			File output = new File("/tmp/linux_desktop_capture.png");
 			ImageIO.write(image, "png", output);
 			System.out.println("✓ Desktop captured successfully!");
 			System.out.println("  Image size: " + image.getWidth() + "x" + image.getHeight());
+			System.out.println("  Capture time: " + (captureTime / 1_000_000) + "ms");
 			System.out.println("  Saved to: " + output.getAbsolutePath());
 		} else {
 			System.out.println("✗ Failed to capture desktop");
@@ -203,6 +209,7 @@ public class LinuxControllerTest {
 		scanner.nextLine(); // Consume newline
 
 		System.out.println("Clicking at (" + x + ", " + y + ") in 2 seconds...");
+		System.out.println("Note: Your mouse cursor should NOT move (using XTest)");
 		Thread.sleep(2000);
 
 		controller.postLeftClick(window, x, y);
@@ -218,6 +225,7 @@ public class LinuxControllerTest {
 		Point mousePos = MouseInfo.getPointerInfo().getLocation();
 		System.out.println("Current mouse position: (" + mousePos.x + ", " + mousePos.y + ")");
 		System.out.println("Clicking at this position in 2 seconds...");
+		System.out.println("Note: Your mouse cursor should NOT move (using XTest)");
 		Thread.sleep(2000);
 
 		controller.postLeftClickScreen(mousePos.x, mousePos.y);
@@ -286,6 +294,7 @@ public class LinuxControllerTest {
 			System.out.println("✓ Running native X11 session");
 		} else if ("wayland".equals(sessionType)) {
 			System.out.println("⚠ Running Wayland (XWayland should be available)");
+			System.out.println("  Robot capture will still work via XWayland");
 		}
 
 		// Test basic X11 connection
@@ -313,23 +322,27 @@ public class LinuxControllerTest {
 		try {
 			ProcessBuilder pb = new ProcessBuilder("/sbin/ldconfig", "-p");
 			Process process = pb.start();
-			Scanner scanner = new Scanner(process.getInputStream());
+			Scanner libScanner = new Scanner(process.getInputStream());
 
 			boolean found = false;
-			while (scanner.hasNextLine()) {
-				if (scanner.nextLine().contains(libName)) {
+			while (libScanner.hasNextLine()) {
+				if (libScanner.nextLine().contains(libName)) {
 					found = true;
 					break;
 				}
 			}
+			libScanner.close();
 
 			if (found) {
 				System.out.println("  ✓ " + libName + " found");
 			} else {
 				System.out.println("  ✗ " + libName + " NOT found");
+				System.out.println("    Install with: sudo apt install " +
+					(libName.contains("X11") ? "libx11-6" : "libxtst-6"));
 			}
 		} catch (Exception e) {
 			System.out.println("  ? " + libName + " (check failed: " + e.getMessage() + ")");
+			System.out.println("    Try: find /usr/lib* -name \"" + libName + "*\" 2>/dev/null");
 		}
 	}
 }
