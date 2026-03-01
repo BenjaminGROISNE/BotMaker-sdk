@@ -1,0 +1,42 @@
+plugins {
+	id 'java'
+	id 'application'
+	id 'eclipse'
+}
+
+group = 'com.botmaker.sdk'
+version = '1.0-SNAPSHOT'
+application {
+	mainClass = 'com.botmaker.sdk.internal.Main'
+}
+repositories {
+	// ddmlib is hosted here
+	google()
+	mavenCentral()
+
+	// Gradle Tooling API is hosted here
+	maven {
+		url 'https://repo.gradle.org/gradle/libs-releases'
+	}
+
+	// Your Eclipse dependencies
+	maven {
+		url 'https://download.eclipse.org/eclipse/updates/4.30/'
+	}
+}
+
+dependencies {
+	testImplementation platform('org.junit:junit-bom:5.10.0')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	implementation 'org.eclipse.platform:org.eclipse.core.runtime:3.31.0'
+	implementation 'org.eclipse.platform:org.eclipse.equinox.common:3.17.0'
+	implementation 'org.eclipse.platform:org.eclipse.core.resources:3.21.0'
+	implementation 'org.bytedeco:javacv-platform:1.5.12'
+	implementation 'com.android.tools.ddms:ddmlib:31.2.0'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+}
+
+test {
+	useJUnitPlatform()
+}
