@@ -311,7 +311,7 @@ public class LinuxControllerTest {
 
 	private static void checkLibrary(String libName) {
 		try {
-			ProcessBuilder pb = new ProcessBuilder("ldconfig", "-p");
+			ProcessBuilder pb = new ProcessBuilder("/sbin/ldconfig", "-p");
 			Process process = pb.start();
 			Scanner scanner = new Scanner(process.getInputStream());
 
