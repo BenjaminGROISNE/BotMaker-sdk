@@ -1,0 +1,104 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.botmaker.sdk",
+    "module": "Botmaker-sdk",
+    "version": "1.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.1.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 25,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "Botmaker-sdk-1.0-SNAPSHOT.jar",
+          "url": "Botmaker-sdk-1.0-SNAPSHOT.jar",
+          "size": 110009,
+          "sha512": "88ac5b3e9e2384147bddd580298c6d37bb25d29b7d95a86821fe603e3037196097775a262118e24e2082545e0f9502805caa1332b9dec9159f6ed80e05f7698b",
+          "sha256": "c3b6c254fd494c9666d0b4dc52a745eb29a73d02f8e66becea972617cc6eb812",
+          "sha1": "3661ffa9b1aa23b676d5ce0240ad66c2af4ee8e8",
+          "md5": "e33026f6c3c7f8c05241215c05395a76"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 25,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.eclipse.platform",
+          "module": "org.eclipse.core.runtime",
+          "version": {
+            "requires": "3.31.0"
+          }
+        },
+        {
+          "group": "org.eclipse.platform",
+          "module": "org.eclipse.equinox.common",
+          "version": {
+            "requires": "3.17.0"
+          }
+        },
+        {
+          "group": "org.eclipse.platform",
+          "module": "org.eclipse.core.resources",
+          "version": {
+            "requires": "3.21.0"
+          }
+        },
+        {
+          "group": "org.bytedeco",
+          "module": "javacv-platform",
+          "version": {
+            "requires": "1.5.12"
+          }
+        },
+        {
+          "group": "com.android.tools.ddms",
+          "module": "ddmlib",
+          "version": {
+            "requires": "31.2.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.core",
+          "module": "jackson-databind",
+          "version": {
+            "requires": "2.17.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "Botmaker-sdk-1.0-SNAPSHOT.jar",
+          "url": "Botmaker-sdk-1.0-SNAPSHOT.jar",
+          "size": 110009,
+          "sha512": "88ac5b3e9e2384147bddd580298c6d37bb25d29b7d95a86821fe603e3037196097775a262118e24e2082545e0f9502805caa1332b9dec9159f6ed80e05f7698b",
+          "sha256": "c3b6c254fd494c9666d0b4dc52a745eb29a73d02f8e66becea972617cc6eb812",
+          "sha1": "3661ffa9b1aa23b676d5ce0240ad66c2af4ee8e8",
+          "md5": "e33026f6c3c7f8c05241215c05395a76"
+        }
+      ]
+    }
+  ]
+}
