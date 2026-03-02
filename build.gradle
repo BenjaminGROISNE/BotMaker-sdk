@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.botmaker.sdk'
-version = System.getenv("GITHUB_REF_NAME")?.replaceFirst(/^v/, '') ?: '1.0.0'
+version = '1.0.0'
 application {
 	mainClass = 'com.botmaker.sdk.internal.Main'
 }
